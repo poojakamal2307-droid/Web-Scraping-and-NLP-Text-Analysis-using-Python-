@@ -1,0 +1,88 @@
+import urllib.request  # handling URL
+from bs4 import BeautifulSoup  # HTML parser
+import nltk  # toolkit
+import json
+import pandas as pd
+from docx import Document
+from nltk.corpus import stopwords
+
+# Download stopwords if not already done
+nltk.download('stopwords')
+
+# ===============================
+# Get the info from website
+# ===============================
+headers = {'User-Agent': 'Mozilla/5.0'}  # to avoid HTTP 403 error
+req = urllib.request.Request('https://en.wikipedia.org/wiki/Apple', headers=headers)
+response = urllib.request.urlopen(req)
+html = response.read()
+
+# ===============================
+# Parse HTML
+# ===============================
+soup = BeautifulSoup(html, 'html5lib')
+
+text = soup.get_text(strip=True)
+print("Text extracted!")
+
+# ===============================
+# Tokenization
+# ===============================
+tokens = [t for t in text.split()]
+print("Tokens created!")
+
+# ===============================
+# Stopwords removal
+# ===============================
+sr = stopwords.words('english')
+clean_tokens = tokens[:]
+
+for token in tokens:
+    if token in sr:
+        clean_tokens.remove(token)
+
+print("Stopwords removed!")
+
+# ===============================
+# Frequency Distribution
+# ===============================
+freq = nltk.FreqDist(clean_tokens)
+
+for key, val in freq.items():
+    print(str(key) + ':' + str(val))
+
+freq.plot(20)
+
+# ===============================
+# Save as JSON
+# ===============================
+data = {
+    "text": text,
+    "tokens": clean_tokens
+}
+
+with open("scraped_data.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=4)
+
+print("JSON file saved!")
+
+# ===============================
+# Save as Excel
+# ===============================
+df = pd.DataFrame(clean_tokens, columns=["Words"])
+df.to_excel("scraped_data.xlsx", index=False)
+
+print("Excel file saved!")
+
+# ===============================
+# Save as Word
+# ===============================
+doc = Document()
+doc.add_heading("Scraped Data", level=1)
+
+for word in clean_tokens:
+    doc.add_paragraph(word)
+
+doc.save("scraped_data.docx")
+
+print("Word file saved!")
